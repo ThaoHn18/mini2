@@ -1,5 +1,9 @@
+from django.core import paginator
 from django.shortcuts import get_object_or_404, render,redirect,get_list_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, request
+from django.core.paginator import Page, Paginator
+from django.db.models import Q
+from django.contrib.auth.decorators import login_required
 from .models import Book,Author
 from .forms import AuthorForm, Bookform
 # Create your views here.
@@ -12,20 +16,35 @@ def index(request): # Tham số bắt buộc phải có các hàm views.py
     # response.write("<h1> Alo Hello Thao</h1>")
     # response.write("Đây là app đầu tiên của Thao")
  
-    age=12
-    name="Alice"
+    # age=12
+    # name="Alice"
     all_authors=Author.objects.all()
     return render(
         request=request,
         template_name="index.html",
-        context={
-            'all_authors':all_authors
-        }
     )
 def home(request):
     name= request.session.get('name','')
     return HttpResponse('Hello' + name)
 
+def list_author(request):
+    all_authors= Author.objects.all()
+    # paginator=Paginator(all_authors,5)
+    # page_number = request.GET.get("page")
+    # page_obj = paginator.get_page(page_number)
+    search=request.GET.get('search')
+    if search:
+        all_authors=all_authors.filter(Q(first_name__icontains=search) | Q(last_name__icontains=search))
+        # print(all_authors)
+    return render(
+        request=request,
+        template_name="author/list.html",
+        context={
+            'all_authors':all_authors
+        }
+    )
+
+@login_required(login_url="/login") # Dat decorator "login_required" bắt người dùng phải đăng nhập
 def add_author(request):
     author_form=AuthorForm()
     if request.method == "POST":
@@ -43,7 +62,7 @@ def add_author(request):
             'form': author_form
         }
     )
-
+@login_required(login_url="/login")
 def add_book(request):
     form_book = Bookform()
     if request.method == "POST":
@@ -61,7 +80,7 @@ def add_book(request):
             'form': form_book
         }
     )
-
+@login_required(login_url="/login")
 def view_detail_author(request, author_id):
     author_data = Author.objects.get(id=author_id)
     return render(
@@ -71,7 +90,7 @@ def view_detail_author(request, author_id):
             'author': author_data
         }
     )
-
+@login_required(login_url="/login")
 def update_author(request, author_id):
     author_data = get_object_or_404(Author,id=author_id)
     author_form=AuthorForm(instance=author_data)
@@ -89,7 +108,7 @@ def update_author(request, author_id):
         }
 
     )
-
+@login_required(login_url="/login")
 def delete_author(request, author_id):
      author_data = get_object_or_404(Author,id=author_id)
      author_data.delete()
